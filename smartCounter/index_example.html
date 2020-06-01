@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>bufferCount</title>
+    <script src="https://npmcdn.com/@reactivex/rxjs@5.0.0-beta.3/dist/global/Rx.umd.js"></script>
+  </head>
+  <body>
+    <input id="range" type="number" />
+    <button id="update">Update</button>
+    <h3 id="display"></h3>
+    <script>
+      // utility functions
+      const takeUntilFunc = (endRange, currentNumber) => {
+        return endRange > currentNumber
+          ? (val) => val <= endRange
+          : (val) => val >= endRange
+      }
+
+      const positiveOrNegative = (endRange, currentNumber) => {
+        return endRange > currentNumber ? 1 : -1
+      }
+
+      const updateHTML = (id) => (val) => {
+        document.getElementById(id).innerHTML = val
+      }
+      // display
+      const input = document.getElementById('range')
+      const updateButton = document.getElementById('update')
+
+      const subscription = (function (currentNumber) {
+        /*
+        1 产生一个observable对象
+        2 获取input value
+        3  switchMap
+          3.0 timer(0, 20)
+          3.1 endRange > currentNumber ? 1 : -1
+          3.2 以初始值currentNumber开始数据
+          3.3 累加 1 或 -1
+          3.4 判断是否结束数据流
+        4 将当前数据流赋值给currentNumber，作为下一轮的起始值
+        5 用最初的currentNumber 作为初始值
+        6 添加观察者， 获取数据更新dom
+        */
+        return Rx.Observable.fromEvent(updateButton, 'click')
+          .map((_) => parseInt(input.value))
+          .switchMap((endRange) => {
+            return (
+              Rx.Observable.timer(0, 20)
+                .mapTo(positiveOrNegative(endRange, currentNumber))
+                .startWith(currentNumber)
+                .scan((acc, curr) => acc + curr)
+                // .delayWhen(//easing here)
+                .takeWhile(takeUntilFunc(endRange, currentNumber))
+            )
+          })
+          .do((v) => (currentNumber = v))
+          .startWith(currentNumber)
+          .subscribe(updateHTML('display'))
+      })(10)
+    </script>
+  </body>
+</html>

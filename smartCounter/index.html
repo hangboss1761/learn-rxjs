@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>bufferCount</title>
+    <script src="https://npmcdn.com/@reactivex/rxjs@5.0.0-beta.3/dist/global/Rx.umd.js"></script>
+  </head>
+  <body>
+    <input id="range" type="number" />
+    <button id="update">Update</button>
+    <h3 id="display"></h3>
+    <script>
+      let rangeDom = document.querySelector('#range')
+      let updateDom = document.querySelector('#update')
+      let displayDom = document.querySelector('#display')
+
+      /*
+        1 产生一个observable对象
+        2 获取input value
+        3  switchMap
+          3.0 timer(0, 20)
+          3.1 endRange > currentNumber ? 1 : -1
+          3.2 以初始值currentNumber开始数据
+          3.3 累加 1 或 -1
+          3.4 判断是否结束数据流
+        4 将当前数据流赋值给currentNumber，作为下一轮的起始值
+        5 用最初的currentNumber 作为初始值
+        6 添加观察者， 获取数据更新dom
+        */
+      const subscribe$ = (function (currentNumber) {
+        return Rx.Observable.fromEvent(updateDom, 'click')
+          .map((_) => parseInt(rangeDom.value))
+          .switchMap((endRange) => {
+            return Rx.Observable.timer(0, 20)
+              .mapTo(
+                ((a, b) => {
+                  return a > b ? 1 : -1
+                })(endRange, currentNumber)
+              )
+              .startWith(currentNumber)
+              .scan((acc, cur) => acc + cur)
+              .takeWhile(
+                ((a, b) => {
+                  return a > b ? (val) => val <= a : (val) => val >= a
+                })(endRange, currentNumber)
+              )
+          })
+          .do((val) => (currentNumber = val))
+          .startWith(currentNumber)
+          .subscribe((val) => {
+            displayDom.innerHTML = val
+          })
+      })(0)
+    </script>
+  </body>
+</html>
