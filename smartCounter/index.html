@@ -11,11 +11,26 @@
     <button id="update">Update</button>
     <h3 id="display"></h3>
     <script>
-      let rangeDom = document.querySelector('#range')
-      let updateDom = document.querySelector('#update')
-      let displayDom = document.querySelector('#display')
+      // utility functions
+      const takeUntilFunc = (endRange, currentNumber) => {
+        return endRange > currentNumber
+          ? (val) => val <= endRange
+          : (val) => val >= endRange
+      }
 
-      /*
+      const positiveOrNegative = (endRange, currentNumber) => {
+        return endRange > currentNumber ? 1 : -1
+      }
+
+      const updateHTML = (id) => (val) => {
+        document.getElementById(id).innerHTML = val
+      }
+      // display
+      const input = document.getElementById('range')
+      const updateButton = document.getElementById('update')
+
+      const subscription = (function (currentNumber) {
+        /*
         1 产生一个observable对象
         2 获取input value
         3  switchMap
@@ -28,30 +43,22 @@
         5 用最初的currentNumber 作为初始值
         6 添加观察者， 获取数据更新dom
         */
-      const subscribe$ = (function (currentNumber) {
-        return Rx.Observable.fromEvent(updateDom, 'click')
-          .map((_) => parseInt(rangeDom.value))
+        return Rx.Observable.fromEvent(updateButton, 'click')
+          .map((_) => parseInt(input.value))
           .switchMap((endRange) => {
-            return Rx.Observable.timer(0, 20)
-              .mapTo(
-                ((a, b) => {
-                  return a > b ? 1 : -1
-                })(endRange, currentNumber)
-              )
-              .startWith(currentNumber)
-              .scan((acc, cur) => acc + cur)
-              .takeWhile(
-                ((a, b) => {
-                  return a > b ? (val) => val <= a : (val) => val >= a
-                })(endRange, currentNumber)
-              )
+            return (
+              Rx.Observable.timer(0, 20)
+                .mapTo(positiveOrNegative(endRange, currentNumber))
+                .startWith(currentNumber)
+                .scan((acc, curr) => acc + curr)
+                // .delayWhen(//easing here)
+                .takeWhile(takeUntilFunc(endRange, currentNumber))
+            )
           })
-          .do((val) => (currentNumber = val))
+          .do((v) => (currentNumber = v))
           .startWith(currentNumber)
-          .subscribe((val) => {
-            displayDom.innerHTML = val
-          })
-      })(0)
+          .subscribe(updateHTML('display'))
+      })(10)
     </script>
   </body>
 </html>

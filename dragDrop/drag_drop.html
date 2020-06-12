@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=" />
+    <title>拖拽</title>
+    <style type="text/css">
+      body {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+      #box {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        border: 1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="box"></div>
+    <script src="https://unpkg.com/rxjs@5.5.2/bundles/Rx.min.js"></script>
+    <script>
+      const box = document.querySelector('#box')
+      const mouseDown$ = Rx.Observable.fromEvent(box, 'mousedown')
+      const mouseUp$ = Rx.Observable.fromEvent(box, 'mouseup')
+      const mouseOut$ = Rx.Observable.fromEvent(box, 'mouseout')
+      const mouseMove$ = Rx.Observable.fromEvent(box, 'mousemove')
+
+      /*
+       1. 数据流从在dom上按下鼠标开始
+       2. 与mouseMove事件产生的数据进行合并
+       3. mouseMove事件产生的数据在鼠标抬起或者移出到dom外时停止
+       4. 对数据流中返回的数据进行处理：计算x,y的位置
+       5. 添加观察者，绑定回调
+       */
+      const drag$ = mouseDown$.concatMap((startEvent) => {
+        const initialLeft = box.offsetLeft
+        const initialTop = box.offsetTop
+        const stop$ = mouseUp$.merge(mouseOut$)
+
+        return mouseMove$.takeUntil(stop$).map((moveEvent) => {
+          return {
+            x: moveEvent.x - startEvent.x + initialLeft,
+            y: moveEvent.y - startEvent.y + initialTop,
+          }
+        })
+      })
+
+      console.log('guoyuhang drag$: ', drag$)
+
+      drag$.subscribe((event) => {
+        box.style.left = event.x + 'px'
+        box.style.top = event.y + 'px'
+      })
+
+      drag$.subscribe((event) => {
+        console.log('guoyuhang event: ', event)
+      })
+    </script>
+  </body>
+</html>
